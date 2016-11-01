@@ -60,7 +60,7 @@ struct TTaskSpec {
   2: TPlacementPreference preference;
   3: binary message;
 }
-
+//wdm10-29: this Request is from FE to scheduler
 struct TSchedulingRequest {
   1: string app;
   2: list<TTaskSpec> tasks;
