@@ -108,16 +108,18 @@ public class SimpleBackend implements BackendService.Iface {
   private class TaskRunnable implements Runnable {
     private int taskDurationMillis;
     private TFullTaskId taskId;
-
+    private ByteBuffer message;
     public TaskRunnable(String requestId, TFullTaskId taskId, ByteBuffer message) {
       this.taskDurationMillis = message.getInt();
       this.taskId = taskId;
+      this.message = message;
     }
 
     @Override
     public void run() {
       long startTime = System.currentTimeMillis();
       try {
+        LOG.debug("[WDM 10_31] got message: "+message.toString());
         Thread.sleep(taskDurationMillis);
       } catch (InterruptedException e) {
         LOG.error("Interrupted while sleeping: " + e.getMessage());
