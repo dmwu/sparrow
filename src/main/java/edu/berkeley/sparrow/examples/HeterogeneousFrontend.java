@@ -304,6 +304,7 @@ public class HeterogeneousFrontend implements FrontendService.Iface {
       long toWait = Math.max(0,  (long) curLaunch - System.currentTimeMillis());
       mostRecentLaunch = curLaunch;
       if (toWait == 0) {
+        //[WDM] means that the current task launch is lagging behind.
         LOG.warn("Lanching task after start time in generated workload.");
       }
       Thread.sleep(toWait);

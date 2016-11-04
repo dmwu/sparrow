@@ -170,6 +170,7 @@ public class TaskLauncherService {
     }
   }
 
+  //WDM-11-02: scheduler here means task scheduler, "nodeMonitorPort" is "nodeMonitorInternalPort"
   public void initialize(Configuration conf, TaskScheduler scheduler,
       int nodeMonitorPort) {
     numThreads = scheduler.getMaxActiveTasks();

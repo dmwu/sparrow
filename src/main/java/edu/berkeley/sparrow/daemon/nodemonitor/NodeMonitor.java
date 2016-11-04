@@ -61,6 +61,7 @@ public class NodeMonitor {
   // Map to scheduler socket address for each request id.
   private ConcurrentMap<String, InetSocketAddress> requestSchedulers =
       Maps.newConcurrentMap();
+
   private ThriftClientPool<SchedulerService.AsyncClient> schedulerClientPool =
       new ThriftClientPool<SchedulerService.AsyncClient>(
           new ThriftClientPool.SchedulerServiceMakerFactory());
@@ -134,7 +135,7 @@ public class NodeMonitor {
     LOG.debug(Logging.functionCall(request));
     AUDIT_LOG.info(Logging.auditEventString("node_monitor_enqueue_task_reservation",
                                             ipAddress, request.requestId));
-    LOG.info("Received enqueue task reservation request from " + ipAddress + " for request " +
+    LOG.info("Received enqueue task reservation request" + ipAddress + " for request " +
              request.requestId);
 
     InetSocketAddress schedulerAddress = new InetSocketAddress(

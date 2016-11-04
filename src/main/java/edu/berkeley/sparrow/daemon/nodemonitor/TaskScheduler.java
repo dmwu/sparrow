@@ -139,7 +139,7 @@ public abstract class TaskScheduler {
       LOG.debug("Creating reservation " + i + " for request " + request.getRequestId());
       TaskSpec reservation = new TaskSpec(request, appBackendAddress);
       int queuedReservations = handleSubmitTaskReservation(reservation);
-      AUDIT_LOG.info(Logging.auditEventString("reservation_enqueued", ipAddress, request.requestId,
+      AUDIT_LOG.info(Logging.auditEventString("reservation_enqueued [WDM] on NM", ipAddress, request.requestId,
                                               queuedReservations));
     }
   }
