@@ -113,19 +113,7 @@ public class TClients {
     return createBlockingBackendClient(socket.getAddress().getHostAddress(), socket.getPort());
   }
 
-  public static BackendService.Client createBlockingBackendClient(
-      String host, int port) throws IOException {
-    TTransport tr = new TFramedTransport(new TSocket(host, port));
-    try {
-      tr.open();
-    } catch (TTransportException e) {
-      LOG.warn("Error creating backend client to " + host + ":" + port);
-      throw new IOException(e);
-    }
-    TProtocol proto = new TBinaryProtocol(tr);
-    BackendService.Client client = new BackendService.Client(proto);
-    return client;
-  }
+
 
   public static StateStoreService.Client createBlockingStateStoreClient(
       String host, int port) throws IOException {
