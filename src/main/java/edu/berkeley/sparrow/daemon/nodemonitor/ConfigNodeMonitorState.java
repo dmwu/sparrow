@@ -43,6 +43,7 @@ public class ConfigNodeMonitorState implements NodeMonitorState {
   @Override
   public boolean registerBackend(String appId, InetSocketAddress nodeMonitor) {
     // Verify that the given backend information matches the static configuration.
+    LOG.debug("[WDM] received message "+nodeMonitor.toString());
     if (!appId.equals(staticAppId)) {
       LOG.error("Requested to register backend for app " + appId +
           " but was expecting app " + staticAppId);
