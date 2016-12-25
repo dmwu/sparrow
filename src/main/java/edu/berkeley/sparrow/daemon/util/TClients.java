@@ -114,20 +114,20 @@ public class TClients {
   }
 
 
-
-  public static StateStoreService.Client createBlockingStateStoreClient(
-      String host, int port) throws IOException {
+  public static BackendService.Client createBlockingBackendClient(
+          String host, int port) throws IOException {
     TTransport tr = new TFramedTransport(new TSocket(host, port));
     try {
       tr.open();
     } catch (TTransportException e) {
-      LOG.warn("Error creating state store client to " + host + ":" + port);
+      LOG.warn("Error creating backend client to " + host + ":" + port);
       throw new IOException(e);
     }
     TProtocol proto = new TBinaryProtocol(tr);
-    StateStoreService.Client client = new StateStoreService.Client(proto);
+    BackendService.Client client = new BackendService.Client(proto);
     return client;
   }
+
 
   public static FrontendService.Client createBlockingFrontendClient(
       InetSocketAddress socket) throws IOException {
