@@ -113,6 +113,7 @@ public class NodeMonitor {
    */
   public boolean registerBackend(String appId, InetSocketAddress nmAddr,
       InetSocketAddress backendAddr) {
+    System.out.println("[begin]"+this.hashCode());
     LOG.debug(Logging.functionCall(appId, nmAddr, backendAddr));
     if (appSockets.containsKey(appId)) {
       LOG.warn("Attempt to re-register app " + appId);
@@ -120,6 +121,7 @@ public class NodeMonitor {
     }
     appSockets.put(appId, backendAddr);
     appTasks.put(appId, new ArrayList<TFullTaskId>());
+    System.out.println("[end]"+this.hashCode());
     return state.registerBackend(appId, nmAddr);
   }
 
