@@ -22,6 +22,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+import edu.berkeley.sparrow.daemon.util.Network;
 import org.apache.commons.configuration.Configuration;
 import org.apache.thrift.TException;
 
@@ -82,8 +83,9 @@ public class NodeMonitorThrift implements NodeMonitorService.Iface,
         SparrowConf.INTERNAL_THRIFT_THREADS,
         DEFAULT_INTERNAL_THRIFT_THREADS);
     TServers.launchThreadedThriftServer(internalPort, internalThreads, internalProcessor);
-
-    internalAddr = new InetSocketAddress(InetAddress.getLocalHost(), internalPort);
+    //[WDM] must get eth2 address, not localhost
+    String internalIP = Network.getIPAddressByNICName("eth2");
+    internalAddr = new InetSocketAddress(internalIP, internalPort);
   }
 
   @Override

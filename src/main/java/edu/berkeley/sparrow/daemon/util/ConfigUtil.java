@@ -49,13 +49,13 @@ public class ConfigUtil {
     Set<InetSocketAddress> backends = new HashSet<InetSocketAddress>();
 
     for (String node: conf.getStringArray(SparrowConf.STATIC_NODE_MONITORS)) {
-      System.out.println("[WDM] node: "+node);
+      //System.out.println("[WDM] node: "+node);
       Optional<InetSocketAddress> addr = Serialization.strToSocket(node);
       if (!addr.isPresent()) {
         LOG.warn("Bad backend address: " + node);
         continue;
       }
-      System.out.println("[WDM] after conversion: "+addr.get());
+      //System.out.println("[WDM] after conversion: "+addr.get());
       backends.add(addr.get());
     }
 
