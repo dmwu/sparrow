@@ -123,7 +123,7 @@ public class NodeMonitor {
    // }
     //[WDM add sleep to test data race]
     try {
-      sleep(1);
+      sleep(100);
     }catch (InterruptedException e){
       System.out.println("fucking sleeping error");
     }
