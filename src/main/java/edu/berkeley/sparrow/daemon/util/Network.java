@@ -58,7 +58,6 @@ public class Network {
   public static String getIPAddressByNICName(String nicName) {
     try {
       NetworkInterface n = NetworkInterface.getByName(nicName);
-      System.out.println(n.getDisplayName() + ":");
       Enumeration ee = n.getInetAddresses();
       if(!ee.hasMoreElements()){
         return "IP UNKNOWN";

@@ -171,8 +171,6 @@ public class SimpleBackend implements BackendService.Iface {
     parser.accepts("help", "print help statement");
     OptionSet options = parser.parse(args);
     //[WDM-test data race]
-    String testNMHost = args[0];
-    int testNListenPort =  Integer.parseInt(args[1]);
     if (options.has("help")) {
       parser.printHelpOn(System.out);
       System.exit(-1);
