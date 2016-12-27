@@ -10,7 +10,7 @@ do a few things:
 $ git clone git://github.com/radlab/sparrow.git
 2) Build Sparrow:
 $ cd sparrow
-$ mvn package
+$ mvn package -Dmaven.test.skip=true
 3) Write a configuration file and copy the file to all machines. Currently,
 each Sparrow scheduler needs a configuration file that gives a list of where
 all of the Sparrow node monitors (worker machines) are running.
