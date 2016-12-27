@@ -92,6 +92,7 @@ public class NodeMonitorThrift implements NodeMonitorService.Iface,
     if (!backendAddr.isPresent()) {
       return false; // TODO: maybe we should throw some exception here?
     }
+    System.out.println("[WDM]"+backendAddr.get().getAddress());
     return nodeMonitor.registerBackend(app, internalAddr, backendAddr.get());
   }
 
