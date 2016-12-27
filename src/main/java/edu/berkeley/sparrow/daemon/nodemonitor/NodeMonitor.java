@@ -43,6 +43,8 @@ import edu.berkeley.sparrow.thrift.SchedulerService.AsyncClient.sendFrontendMess
 import edu.berkeley.sparrow.thrift.TEnqueueTaskReservationsRequest;
 import edu.berkeley.sparrow.thrift.TFullTaskId;
 
+import static java.lang.Thread.sleep;
+
 /**
  * A Node Monitor which is responsible for communicating with application
  * backends. This class is wrapped by multiple thrift servers, so it may
@@ -115,10 +117,18 @@ public class NodeMonitor {
       InetSocketAddress backendAddr) {
     System.out.println("[WDM begin]"+this.hashCode());
     //LOG.debug(Logging.functionCall(appId, nmAddr, backendAddr));
-    if (appSockets.containsKey(appId)) {
-      LOG.warn("Attempt to re-register app " + appId);
-      return false;
+  //  if (appSockets.containsKey(appId)) {
+    //  LOG.warn("Attempt to re-register app " + appId);
+     // return false;
+   // }
+    //[WDM add sleep to test data race]
+    try {
+      sleep(1);
+    }catch (InterruptedException e){
+      System.out.println("fucking sleeping error");
     }
+
+
     appSockets.put(appId, backendAddr);
     appTasks.put(appId, new ArrayList<TFullTaskId>());
     System.out.println("[WDM end]"+this.hashCode());
