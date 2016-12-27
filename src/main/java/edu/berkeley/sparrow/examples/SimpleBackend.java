@@ -167,7 +167,9 @@ public class SimpleBackend implements BackendService.Iface {
       withRequiredArg().ofType(String.class);
     parser.accepts("help", "print help statement");
     OptionSet options = parser.parse(args);
-
+    //[WDM-test data race]
+    String testNMHost = args[1];
+    int testNListenPort =  Integer.parseInt(args[2]);
     if (options.has("help")) {
       parser.printHelpOn(System.out);
       System.exit(-1);
@@ -191,9 +193,12 @@ public class SimpleBackend implements BackendService.Iface {
     BackendService.Processor<BackendService.Iface> processor =
         new BackendService.Processor<BackendService.Iface>(protoBackend);
 
-    int listenPort = conf.getInt(LISTEN_PORT, DEFAULT_LISTEN_PORT);
+    //int listenPort = conf.getInt(LISTEN_PORT, DEFAULT_LISTEN_PORT);
+
+    int listenPort = conf.getInt(LISTEN_PORT, testNListenPort);
     int nodeMonitorPort = conf.getInt(NODE_MONITOR_PORT, NodeMonitorThrift.DEFAULT_NM_THRIFT_PORT);
-    String nodeMonitorHost = conf.getString(NODE_MONITOR_HOST, DEFAULT_NODE_MONITOR_HOST);
+  //  String nodeMonitorHost = conf.getString(NODE_MONITOR_HOST, DEFAULT_NODE_MONITOR_HOST);
+    String nodeMonitorHost = conf.getString(NODE_MONITOR_HOST, testNMHost);
     TServers.launchSingleThreadThriftServer(listenPort, processor);
     protoBackend.initialize(listenPort, nodeMonitorHost, nodeMonitorPort);
   }
