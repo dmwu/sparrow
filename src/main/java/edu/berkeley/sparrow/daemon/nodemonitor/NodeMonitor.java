@@ -130,6 +130,8 @@ public class NodeMonitor {
 
 
     appSockets.put(appId, backendAddr);
+    System.out.println(appSockets.size());
+
     appTasks.put(appId, new ArrayList<TFullTaskId>());
     System.out.println("[WDM end]"+this.hashCode());
     return state.registerBackend(appId, nmAddr);
