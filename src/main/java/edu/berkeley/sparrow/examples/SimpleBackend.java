@@ -17,12 +17,14 @@
 package edu.berkeley.sparrow.examples;
 
 import java.io.IOException;
+import java.net.NetworkInterface;
 import java.nio.ByteBuffer;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import edu.berkeley.sparrow.daemon.util.Network;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 
@@ -60,8 +62,8 @@ public class SimpleBackend implements BackendService.Iface {
   private static final String APP_ID = "sleepApp";
 
   /** Configuration parameters to specify where the node monitor is running. */
-  private static final String NODE_MONITOR_HOST = "node_monitor_host";
-  private static final String DEFAULT_NODE_MONITOR_HOST = "localhost";
+  private static final String NIC_Name= "NIC_name";
+  private static final String DEFAULT_NODE_MONITOR_HOST = "eth2";
   private static String NODE_MONITOR_PORT = "node_monitor_port";
 
   private static Client client;
@@ -143,7 +145,8 @@ public class SimpleBackend implements BackendService.Iface {
 		}
 
     try {
-      client.registerBackend(APP_ID, "localhost:" + listenPort);
+      //[WDM] backend runs on the same machine as the nodeMonitor it tries to register
+      client.registerBackend(APP_ID, nodeMonitorHost+":"+listenPort);
       LOG.debug("Client successfully registered");
     } catch (TException e) {
       LOG.debug("Error while registering backend: " + e.getMessage());
@@ -193,12 +196,12 @@ public class SimpleBackend implements BackendService.Iface {
     BackendService.Processor<BackendService.Iface> processor =
         new BackendService.Processor<BackendService.Iface>(protoBackend);
 
-    //int listenPort = conf.getInt(LISTEN_PORT, DEFAULT_LISTEN_PORT);
+    int listenPort = conf.getInt(LISTEN_PORT, DEFAULT_LISTEN_PORT);
 
-    int listenPort = conf.getInt(LISTEN_PORT, testNListenPort);
     int nodeMonitorPort = conf.getInt(NODE_MONITOR_PORT, NodeMonitorThrift.DEFAULT_NM_THRIFT_PORT);
-  //  String nodeMonitorHost = conf.getString(NODE_MONITOR_HOST, DEFAULT_NODE_MONITOR_HOST);
-    String nodeMonitorHost = conf.getString(NODE_MONITOR_HOST, testNMHost);
+    String nicName = conf.getString(NIC_Name, DEFAULT_NODE_MONITOR_HOST);
+    String nodeMonitorHost = Network.getIPAddressByNICName(nicName);
+    LOG.debug("backend address: "+nodeMonitorHost+":"+listenPort);
     TServers.launchSingleThreadThriftServer(listenPort, processor);
     protoBackend.initialize(listenPort, nodeMonitorHost, nodeMonitorPort);
   }

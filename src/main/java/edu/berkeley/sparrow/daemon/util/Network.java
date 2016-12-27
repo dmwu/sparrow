@@ -16,9 +16,8 @@
 
 package edu.berkeley.sparrow.daemon.util;
 
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
+import java.net.*;
+import java.util.Enumeration;
 
 import org.apache.commons.configuration.Configuration;
 
@@ -54,5 +53,22 @@ public class Network {
     } catch (UnknownHostException e) {
       return "IP UNKNOWN";
     }
+  }
+
+  public static String getIPAddressByNICName(String nicName) {
+    try {
+      NetworkInterface n = NetworkInterface.getByName(nicName);
+      System.out.println(n.getDisplayName() + ":");
+      Enumeration ee = n.getInetAddresses();
+      if(!ee.hasMoreElements()){
+        return "IP UNKNOWN";
+      }
+      InetAddress i = (InetAddress) ee.nextElement();
+      return i.getHostAddress();
+      }
+      catch (SocketException e) {
+        return "IP UNKONWN";
+      }
+
   }
 }

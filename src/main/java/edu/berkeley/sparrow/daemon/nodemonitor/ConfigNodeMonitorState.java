@@ -43,21 +43,21 @@ public class ConfigNodeMonitorState implements NodeMonitorState {
   @Override
   public boolean registerBackend(String appId, InetSocketAddress nodeMonitor) {
     // Verify that the given backend information matches the static configuration.
-   // if (!appId.equals(staticAppId)) {
-     // LOG.error("Requested to register backend for app " + appId +
-       //   " but was expecting app " + staticAppId);
+    if (!appId.equals(staticAppId)) {
+      LOG.error("Requested to register backend for app " + appId +
+          " but was expecting app " + staticAppId);
 
-   // }
+    }
     //[WDM] if the NM address is localhost or 127.0.0.1, it is also OK
-//    else if (!nodeMonitors.contains(nodeMonitor)) {
-//      StringBuilder errorMessage = new StringBuilder();
-//      for (InetSocketAddress nodeMonitorAddress : nodeMonitors) {
-//        errorMessage.append(nodeMonitorAddress.toString());
-//      }
-//      throw new RuntimeException("Address " + nodeMonitor.toString() +
-//          " not found among statically configured addreses for app " + appId + " (statically " +
-//          "configured addresses include: " + errorMessage.toString());
-//    }
+    else if (!nodeMonitors.contains(nodeMonitor)) {
+      StringBuilder errorMessage = new StringBuilder();
+      for (InetSocketAddress nodeMonitorAddress : nodeMonitors) {
+        errorMessage.append(nodeMonitorAddress.toString());
+      }
+      throw new RuntimeException("Address " + nodeMonitor.toString() +
+          " not found among statically configured addreses for app " + appId + " (statically " +
+          "configured addresses include: " + errorMessage.toString());
+    }
 
     return true;
   }

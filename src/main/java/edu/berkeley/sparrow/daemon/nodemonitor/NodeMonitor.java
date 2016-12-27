@@ -115,25 +115,13 @@ public class NodeMonitor {
    */
   public boolean registerBackend(String appId, InetSocketAddress nmAddr,
       InetSocketAddress backendAddr) {
-    System.out.println("[WDM begin]"+this.hashCode());
-    //LOG.debug(Logging.functionCall(appId, nmAddr, backendAddr));
-  //  if (appSockets.containsKey(appId)) {
-    //  LOG.warn("Attempt to re-register app " + appId);
-     // return false;
-   // }
-    //[WDM add sleep to test data race]
-    try {
-      sleep(100);
-    }catch (InterruptedException e){
-      System.out.println("fucking sleeping error");
+    LOG.debug(Logging.functionCall(appId, nmAddr, backendAddr));
+    if (appSockets.containsKey(appId)) {
+      LOG.warn("Attempt to re-register app " + appId);
+      return false;
     }
-
-
     appSockets.put(appId, backendAddr);
-    System.out.println(appSockets.size());
-
     appTasks.put(appId, new ArrayList<TFullTaskId>());
-    System.out.println("[WDM end]"+this.hashCode());
     return state.registerBackend(appId, nmAddr);
   }
 
