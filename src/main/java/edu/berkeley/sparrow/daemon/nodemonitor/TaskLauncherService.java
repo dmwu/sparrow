@@ -111,6 +111,7 @@ public class TaskLauncherService {
     /** Uses a getTask() RPC to get the task specification from the appropriate scheduler. */
     private List<TTaskLaunchSpec> executeGetTaskRpc(TaskSpec task) {
       String schedulerAddress = task.schedulerAddress.getAddress().getHostAddress();
+      System.out.println("[WDM] schedulerAddress: "+schedulerAddress);
       if (!schedulerClients.containsKey(schedulerAddress)) {
         try {
           schedulerClients.put(schedulerAddress,
