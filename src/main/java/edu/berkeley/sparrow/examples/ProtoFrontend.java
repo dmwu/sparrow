@@ -32,6 +32,7 @@ import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
 import org.apache.thrift.TException;
 
 import edu.berkeley.sparrow.api.SparrowFrontendClient;
@@ -189,7 +190,7 @@ public class ProtoFrontend implements FrontendService.Iface {
       // Logger configuration: log to the console
       BasicConfigurator.configure();
       LOG.setLevel(Level.DEBUG);
-
+      PropertyConfigurator.configure("src/log4j.properties");
       Configuration conf = new PropertiesConfiguration();
 
       if (options.has("c")) {
