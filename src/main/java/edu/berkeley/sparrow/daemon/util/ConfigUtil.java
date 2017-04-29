@@ -58,7 +58,6 @@ public class ConfigUtil {
       //System.out.println("[WDM] after conversion: "+addr.get());
       backends.add(addr.get());
     }
-
     return backends;
   }
 }

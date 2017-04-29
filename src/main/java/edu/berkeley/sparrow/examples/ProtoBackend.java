@@ -35,7 +35,6 @@ import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
 import org.apache.thrift.TException;
 
 import com.google.common.collect.Lists;
@@ -248,7 +247,7 @@ public class ProtoBackend implements BackendService.Iface {
 
     try {
       String localIp = Network.getIPAddressByNICName(nicName);
-      client.registerBackend(APP_ID, localIp+":" + listenPort);
+      client.registerBackend(APP_ID, localIp + listenPort);
       LOG.debug("Client successfully registered");
     } catch (TException e) {
       LOG.debug("Error while registering backend: " + e.getMessage());
@@ -282,7 +281,6 @@ public class ProtoBackend implements BackendService.Iface {
     // Logger configuration: log to the console
     BasicConfigurator.configure();
     LOG.setLevel(Level.DEBUG);
-    PropertyConfigurator.configure("src/log4j.properties");
     LOG.debug("debug logging on");
 
     Configuration conf = new PropertiesConfiguration();

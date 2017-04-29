@@ -377,4 +377,7 @@ public class ConstrainedTaskPlacer implements TaskPlacer {
     }
     return new HashSet<THostPort>();
   }
+  public String getRequestId(){
+    return requestId;
+  }
 }

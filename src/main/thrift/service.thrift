@@ -46,6 +46,7 @@ service GetTaskService {
   list<types.TTaskLaunchSpec> getTask(1: string requestId, 2: types.THostPort nodeMonitorAddress);
 }
 
+
 # A service used by application backends to coordinate with Sparrow.
 service NodeMonitorService {
   # Register this machine as a backend for the given application.
@@ -68,6 +69,7 @@ service BackendService {
 
 # A service that frontends are expected to extend. Handles communication from
 # a Scheduler.
+
 service FrontendService {
   # See SchedulerService.sendFrontendMessage
   void frontendMessage(1: types.TFullTaskId taskId, 2: i32 status,

@@ -16,6 +16,9 @@
 
 package edu.berkeley.sparrow.examples;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -23,6 +26,7 @@ import java.util.List;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import edu.berkeley.sparrow.daemon.util.Network;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 
@@ -31,6 +35,7 @@ import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
 import org.apache.thrift.TException;
 
 import edu.berkeley.sparrow.api.SparrowFrontendClient;
@@ -64,18 +69,19 @@ public class SimpleFrontend implements FrontendService.Iface {
   public static final String SCHEDULER_HOST = "scheduler_host";
   public static final String DEFAULT_SCHEDULER_HOST = "localhost";
   public static final String SCHEDULER_PORT = "scheduler_port";
-
+  public static final String TRACE_FILE_NAME = "trace_file";
   /**
    * Default application name.
    */
-  public static final String APPLICATION_ID = "sleepApp";
+  public static final String APPLICATION_ID = "simpleApp";
 
   private static final Logger LOG = Logger.getLogger(SimpleFrontend.class);
 
   private static final TUserGroupInfo USER = new TUserGroupInfo();
 
   private SparrowFrontendClient client;
-
+  private double traceCPUmean;
+  private int traceJSmean;
   /** A runnable which Spawns a new thread to launch a scheduling request. */
   private class JobLaunchRunnable implements Runnable {
     private int tasksPerJob;
@@ -126,40 +132,53 @@ public class SimpleFrontend implements FrontendService.Iface {
       BasicConfigurator.configure();
       LOG.setLevel(Level.DEBUG);
 
+      PropertyConfigurator.configure("src/log4j.properties");
       Configuration conf = new PropertiesConfiguration();
 
       if (options.has("c")) {
         String configFile = (String) options.valueOf("c");
         conf = new PropertiesConfiguration(configFile);
       }
-
-      int arrivalPeriodMillis = conf.getInt(JOB_ARRIVAL_PERIOD_MILLIS,
-          DEFAULT_JOB_ARRIVAL_PERIOD_MILLIS);
-      int experimentDurationS = conf.getInt(EXPERIMENT_S, DEFAULT_EXPERIMENT_S);
-      LOG.debug("Using arrival period of " + arrivalPeriodMillis +
-          " milliseconds and running experiment for " + experimentDurationS + " seconds.");
-      int tasksPerJob = conf.getInt(TASKS_PER_JOB, DEFAULT_TASKS_PER_JOB);
-      int taskDurationMillis = conf.getInt(TASK_DURATION_MILLIS, DEFAULT_TASK_DURATION_MILLIS);
-
       int schedulerPort = conf.getInt(SCHEDULER_PORT,
           SchedulerThrift.DEFAULT_SCHEDULER_THRIFT_PORT);
-      String schedulerHost = conf.getString(SCHEDULER_HOST, DEFAULT_SCHEDULER_HOST);
+      //need to randomly pick a scheduler if it is not on localhost
+      String schedulerIp = Network.getIPAddress(conf);
       client = new SparrowFrontendClient();
-      client.initialize(new InetSocketAddress(schedulerHost, schedulerPort), APPLICATION_ID, this);
-
-      JobLaunchRunnable runnable = new JobLaunchRunnable(tasksPerJob, taskDurationMillis);
-      ScheduledThreadPoolExecutor taskLauncher = new ScheduledThreadPoolExecutor(1);
-      taskLauncher.scheduleAtFixedRate(runnable, 0, arrivalPeriodMillis, TimeUnit.MILLISECONDS);
-
-      long startTime = System.currentTimeMillis();
-      LOG.debug("sleeping");
-      while (System.currentTimeMillis() < startTime + experimentDurationS * 1000) {
-        Thread.sleep(100);
-      }
-      taskLauncher.shutdown();
+      client.initialize(new InetSocketAddress(schedulerIp, schedulerPort), APPLICATION_ID, this);
+      launchTasks(conf);
     }
     catch (Exception e) {
       LOG.error("Fatal exception", e);
+    }
+  }
+
+  void launchTasks(Configuration conf){
+    String traceFile = conf.getString(TRACE_FILE_NAME,"trace_file");
+    int machineNum = conf.getInt("machine_num",24);
+    int coresPerMachine = conf.getInt("cores_per_machine",6);
+    double load = conf.getDouble("load",0.75);
+    double avgInterArrivalDelay = traceCPUmean*traceJSmean/load;
+    long nextLaunchTime =0, lastLaunchTime =System.currentTimeMillis();
+    List<JobSpec> jobTrace = parseJobsFromFile(traceFile);
+
+    for (JobSpec job : jobTrace) {
+      JobLaunchRunnable runnable = new JobLaunchRunnable(job.numTasks, job.durationMilli);
+      runnable.run();
+      nextLaunchTime = lastLaunchTime + (long) avgInterArrivalDelay;
+      lastLaunchTime = nextLaunchTime;
+      long toWait = Math.max(0, nextLaunchTime - System.currentTimeMillis());
+      if (toWait == 0) {
+        //[WDM] means that the current task launch is lagging behind.
+        //LOG.warn("Launching task after start time in generated workload.");
+      } else {
+        try {
+
+          Thread.sleep(toWait);
+        } catch (InterruptedException e) {
+          LOG.error("Interrupted sleep: " + e.getMessage());
+          return;
+        }
+      }
     }
   }
 
@@ -168,6 +187,53 @@ public class SimpleFrontend implements FrontendService.Iface {
       throws TException {
     // We don't use messages here, so just log it.
     LOG.debug("Got unexpected message: " + Serialization.getByteBufferContents(message));
+  }
+  class JobSpec{
+    int durationMilli;
+    int ioMilli;
+    double memRatio;
+    int numTasks;
+    JobSpec(int duration, double mem, int io, int js){
+      durationMilli = duration;
+      ioMilli = io;
+      memRatio = mem;
+      numTasks = js;
+    }
+  }
+
+  private List<JobSpec> parseJobsFromFile(String file){
+    BufferedReader br;
+    String sCurrentLine;
+    double maxAllowedTaskDurationInMillis = 3.6e6;
+    double sumLoad = 0;
+    int sumJs = 0;
+    List<JobSpec> jobTrace = new ArrayList<JobSpec>();
+    try {
+      br = new BufferedReader(new FileReader(file));
+      while ((sCurrentLine = br.readLine()) != null) {
+          String[] items = sCurrentLine.split(" ");
+          int jobsize = Integer.parseInt(items[4]);
+          //scaling down by 1000x, original data are in seconds, now are in millis
+          double cpu = Double.parseDouble(items[1]);
+          double mem = Double.parseDouble(items[2])/jobsize;
+          double io = Double.parseDouble(items[3]);
+          int scaledJs = Math.max(jobsize/166,1);
+          int taskCPU = (int)(cpu/scaledJs);
+          int taskIO = (int)(io/scaledJs);
+          if(taskCPU >0 || taskCPU<=maxAllowedTaskDurationInMillis){
+            jobTrace.add(new JobSpec(taskCPU, mem, taskIO, scaledJs));
+            sumLoad += taskCPU*scaledJs;
+            sumJs+=scaledJs;
+          }
+        }
+
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    traceCPUmean = sumLoad/sumJs;
+    traceJSmean = sumJs/jobTrace.size();
+    LOG.info("num of jobs: "+jobTrace.size()+" traceCPUmean: "+traceCPUmean);
+    return jobTrace;
   }
 
   public static void main(String[] args) {

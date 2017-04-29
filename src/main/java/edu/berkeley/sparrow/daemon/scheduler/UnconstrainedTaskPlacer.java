@@ -163,4 +163,8 @@ public class UnconstrainedTaskPlacer implements TaskPlacer {
     }
     return new HashSet<THostPort>();
   }
+
+  public String getRequestId() {
+    return requestId;
+  }
 }

@@ -70,4 +70,5 @@ public interface TaskPlacer {
    * After this method is called once, the TaskPlacer assumes all those node monitors were sent
    * cancellation messages, so it will not return any node monitors in the future. */
   public Set<THostPort> getOutstandingNodeMonitorsForCancellation();
+  public String getRequestId();
 }

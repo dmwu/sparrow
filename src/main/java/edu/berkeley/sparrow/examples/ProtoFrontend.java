@@ -289,7 +289,7 @@ public class ProtoFrontend implements FrontendService.Iface {
      * scheduled launch time, but we will not systematically "fall behind" due to
      * compounding time lost during sleep()'s;
      */
-    //Random r = new Random();
+    Random r = new Random();
     double mostRecentLaunch = System.currentTimeMillis();
     long end = System.currentTimeMillis() + launch_duration_s * 1000;
     int userIndex = 0; // Used to determine which user's task to run next.
