@@ -59,7 +59,7 @@ public class SimpleBackend implements BackendService.Iface {
    * so this should be set equal to the maximum number of tasks that can be running on a worker.
    */
   private static final int WORKER_THREADS = 16;
-  private static final String APP_ID = "sleepApp";
+  private static final String APP_ID = "simpleApp";
 
   /** Configuration parameters to specify where the node monitor is running. */
   private static final String NIC_Name= "NIC_name";
