@@ -59,8 +59,8 @@ public class SchedulerThrift implements SchedulerService.Iface, GetTaskService.I
         DEFAULT_SCHEDULER_THRIFT_PORT);
     int threads = conf.getInt(SparrowConf.SCHEDULER_THRIFT_THREADS,
         DEFAULT_SCHEDULER_THRIFT_THREADS);
-    String hostname = Network.getHostName(conf);
-    InetSocketAddress addr = new InetSocketAddress(hostname, port);
+    String localIp = Network.getIPAddress(conf);
+    InetSocketAddress addr = new InetSocketAddress(localIp, port);
     scheduler.initialize(conf, addr);
     TServers.launchThreadedThriftServer(port, threads, processor);
     int getTaskPort = conf.getInt(SparrowConf.GET_TASK_PORT,

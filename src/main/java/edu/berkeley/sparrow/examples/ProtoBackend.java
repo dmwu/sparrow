@@ -25,6 +25,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import edu.berkeley.sparrow.daemon.util.Network;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 
@@ -74,6 +75,8 @@ public class ProtoBackend implements BackendService.Iface {
   public static long startTime = -1;
 
   private static final int DEFAULT_LISTEN_PORT = 20101;
+  private static final String NIC_NAME ="nic_name";
+  private static final String DEFAULT_NIC_NAME = "eth2";
 
   /**
    * This indicates how many threads can concurrently be answering function calls
@@ -234,7 +237,7 @@ public class ProtoBackend implements BackendService.Iface {
    *
    * Also starts a thread that handles finished tasks (by sending an RPC to the node monitor).
    */
-  public void initialize(int listenPort) {
+  public void initialize(String nicName, int listenPort) {
     // Register server.
     try {
 			client = TClients.createBlockingNmClient(NM_HOST, NM_PORT);
@@ -243,7 +246,8 @@ public class ProtoBackend implements BackendService.Iface {
 		}
 
     try {
-      client.registerBackend(APP_ID, "localhost:" + listenPort);
+      String localIp = Network.getIPAddressByNICName(nicName);
+      client.registerBackend(APP_ID, localIp+":" + listenPort);
       LOG.debug("Client successfully registered");
     } catch (TException e) {
       LOG.debug("Error while registering backend: " + e.getMessage());
@@ -295,6 +299,7 @@ public class ProtoBackend implements BackendService.Iface {
     int listenPort = conf.getInt("listen_port", DEFAULT_LISTEN_PORT);
     NM_PORT = conf.getInt("node_monitor_port", NodeMonitorThrift.DEFAULT_NM_THRIFT_PORT);
     TServers.launchThreadedThriftServer(listenPort, THRIFT_WORKER_THREADS, processor);
-    protoBackend.initialize(listenPort);
+    String nicName = conf.getString(NIC_NAME,DEFAULT_NIC_NAME);
+    protoBackend.initialize(nicName, listenPort);
   }
 }

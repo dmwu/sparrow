@@ -90,12 +90,11 @@ public class NodeMonitorThrift implements NodeMonitorService.Iface,
 
   @Override
   public boolean registerBackend(String app, String backendSocket) throws TException {
-    System.out.println("[WDM] original message "+backendSocket);
     Optional<InetSocketAddress> backendAddr = Serialization.strToSocket(backendSocket);
     if (!backendAddr.isPresent()) {
       return false; // TODO: maybe we should throw some exception here?
     }
-    System.out.println("[WDM]"+backendAddr.get().getAddress());
+    System.out.println("[WDM] register backend"+backendAddr.get().getAddress());
     return nodeMonitor.registerBackend(app, internalAddr, backendAddr.get());
   }
 
