@@ -121,7 +121,6 @@ public class SimpleBackend implements BackendService.Iface {
     public void run() {
       long startTime = System.currentTimeMillis();
       try {
-        LOG.debug("[WDM 10_31] got message: "+message.toString());
         Thread.sleep(taskDurationMillis);
       } catch (InterruptedException e) {
         LOG.error("Interrupted while sleeping: " + e.getMessage());
