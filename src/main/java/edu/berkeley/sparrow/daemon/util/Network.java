@@ -47,12 +47,9 @@ public class Network {
    * specified in configuration or from querying the machine.
    */
   public static String getIPAddress(Configuration conf) {
-    String hostname = getHostName(conf);
-    try {
-      return InetAddress.getByName(hostname).getHostAddress();
-    } catch (UnknownHostException e) {
-      return "IP UNKNOWN";
-    }
+    String nicName =  conf.getString("nic_name","eth2");
+    String ip = getIPAddressByNICName(nicName);
+    return ip;
   }
 
   public static String getIPAddressByNICName(String nicName) {
@@ -63,7 +60,7 @@ public class Network {
         return "IP UNKNOWN";
       }
       InetAddress i = (InetAddress) ee.nextElement();
-      return i.getHostAddress();
+        return i.getHostAddress();
       }
       catch (SocketException e) {
         return "IP UNKONWN";

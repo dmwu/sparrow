@@ -48,6 +48,7 @@ public class NodeMonitorThrift implements NodeMonitorService.Iface,
   public final static int DEFAULT_NM_THRIFT_THREADS = 32;
   public final static int DEFAULT_INTERNAL_THRIFT_PORT = 20502;
   public final static int DEFAULT_INTERNAL_THRIFT_THREADS = 8;
+  public final static String NIC_NAME = "eth2";
 
   private NodeMonitor nodeMonitor = new NodeMonitor();
   // The socket addr (ip:port) where we listen for requests from other Sparrow daemons.
@@ -83,9 +84,8 @@ public class NodeMonitorThrift implements NodeMonitorService.Iface,
         SparrowConf.INTERNAL_THRIFT_THREADS,
         DEFAULT_INTERNAL_THRIFT_THREADS);
     TServers.launchThreadedThriftServer(internalPort, internalThreads, internalProcessor);
-    //[WDM] must get eth2 address, not localhost
-    String internalIP = Network.getIPAddressByNICName("eth2");
-    internalAddr = new InetSocketAddress(internalIP, internalPort);
+
+    internalAddr = new InetSocketAddress(Network.getIPAddress(conf), internalPort);
   }
 
   @Override
