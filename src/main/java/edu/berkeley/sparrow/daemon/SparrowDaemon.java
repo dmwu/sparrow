@@ -29,6 +29,7 @@ import org.apache.log4j.Logger;
 import edu.berkeley.sparrow.daemon.nodemonitor.NodeMonitorThrift;
 import edu.berkeley.sparrow.daemon.scheduler.SchedulerThrift;
 import edu.berkeley.sparrow.daemon.util.Logging;
+import org.apache.log4j.PropertyConfigurator;
 
 /**
  * A Sparrow Daemon includes both a scheduler and a node monitor.
@@ -44,6 +45,7 @@ public class SparrowDaemon {
   public void initialize(Configuration conf,String component) throws Exception {
     Level logLevel = Level.toLevel(conf.getString(SparrowConf.LOG_LEVEL, ""),
         DEFAULT_LOG_LEVEL);
+    PropertyConfigurator.configure("src/log4j.properties");
     if(component.toLowerCase().equals("scheduler")){
       LOG.info("Starting SparrowDaemon Scheduler");
       SchedulerThrift scheduler = new SchedulerThrift();
