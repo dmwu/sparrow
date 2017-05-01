@@ -24,6 +24,7 @@ import java.util.List;
 
 import edu.berkeley.sparrow.daemon.util.Network;
 import org.apache.commons.configuration.Configuration;
+import org.apache.commons.configuration.SystemConfiguration;
 import org.apache.thrift.TException;
 
 import com.google.common.base.Optional;
@@ -94,7 +95,6 @@ public class NodeMonitorThrift implements NodeMonitorService.Iface,
     if (!backendAddr.isPresent()) {
       return false; // TODO: maybe we should throw some exception here?
     }
-    System.out.println("[WDM] register backend"+backendAddr.get().getAddress());
     return nodeMonitor.registerBackend(app, internalAddr, backendAddr.get());
   }
 

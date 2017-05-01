@@ -25,6 +25,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 
+import com.google.common.collect.Lists;
+import edu.berkeley.sparrow.daemon.util.*;
+import edu.berkeley.sparrow.thrift.*;
 import org.apache.commons.configuration.Configuration;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
@@ -33,16 +36,9 @@ import org.apache.thrift.async.AsyncMethodCallback;
 import com.google.common.collect.Maps;
 
 import edu.berkeley.sparrow.daemon.SparrowConf;
-import edu.berkeley.sparrow.daemon.util.Logging;
-import edu.berkeley.sparrow.daemon.util.Network;
-import edu.berkeley.sparrow.daemon.util.Resources;
-import edu.berkeley.sparrow.daemon.util.ThriftClientPool;
-import edu.berkeley.sparrow.thrift.SchedulerService;
 import edu.berkeley.sparrow.thrift.SchedulerService.AsyncClient;
 import edu.berkeley.sparrow.thrift.SchedulerService.AsyncClient.sendFrontendMessage_call;
-import edu.berkeley.sparrow.thrift.TEnqueueTaskReservationsRequest;
-import edu.berkeley.sparrow.thrift.TFullTaskId;
-
+import edu.berkeley.sparrow.daemon.scheduler.SchedulerThrift;
 import static java.lang.Thread.sleep;
 
 /**
@@ -70,7 +66,7 @@ public class NodeMonitor {
   private TaskScheduler scheduler;
   private TaskLauncherService taskLauncherService;
   private String ipAddress;
-
+  private HashMap<String, GetTaskAndNotificationService.Client> taskFinishClients = Maps.newHashMap();
   public void initialize(Configuration conf, int nodeMonitorInternalPort)
       throws UnknownHostException {
     String mode = conf.getString(SparrowConf.DEPLYOMENT_MODE, "unspecified");
@@ -127,17 +123,38 @@ public class NodeMonitor {
 
   /**
    * Account for tasks which have finished.
+   * [WDM] add rpc to notify the cluster scheduler April-30-2017
    */
   public void tasksFinished(List<TFullTaskId> tasks) {
     LOG.debug(Logging.functionCall(tasks));
-    scheduler.tasksFinished(tasks);
+    //only get the first task since the size of tasks is always 1
+      TFullTaskId t = tasks.get(0);
+      String schedulerIp = t.getSchedulerAddress().getHost();
+      if (!taskFinishClients.containsKey(schedulerIp)) {
+        try {
+          taskFinishClients.put(schedulerIp,
+                  TClients.createBlockingGetTaskClient(schedulerIp, SchedulerThrift.DEFAULT_GET_TASK_PORT));
+        } catch (IOException e) {
+          LOG.error("Error creating thrift client: " + e.getMessage());
+          return;
+        }
+      }
+      GetTaskAndNotificationService.Client taskFinishClient = taskFinishClients.get(schedulerIp);
+      try {
+        taskFinishClient.taskFinish(tasks);
+      } catch (TException e) {
+        e.printStackTrace();
+        return;
+      }
+
+     scheduler.tasksFinished(tasks);
   }
 
   public boolean enqueueTaskReservations(TEnqueueTaskReservationsRequest request) {
     LOG.debug(Logging.functionCall(request));
     AUDIT_LOG.info(Logging.auditEventString("node_monitor_enqueue_task_reservation",
                                             ipAddress, request.requestId));
-    LOG.info("Received enqueue task reservation request" + ipAddress + " for request " +
+    LOG.info("Received reservation request"+ " for" +
              request.requestId);
 
     InetSocketAddress schedulerAddress = new InetSocketAddress(

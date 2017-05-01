@@ -16,7 +16,9 @@
 
 package edu.berkeley.sparrow.examples;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.NetworkInterface;
 import java.nio.ByteBuffer;
 import java.util.concurrent.BlockingQueue;
@@ -34,6 +36,7 @@ import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
 import org.apache.thrift.TException;
 
 import com.google.common.collect.Lists;
@@ -58,11 +61,11 @@ public class SimpleBackend implements BackendService.Iface {
    * Each task is launched in its own thread from a thread pool with WORKER_THREADS threads,
    * so this should be set equal to the maximum number of tasks that can be running on a worker.
    */
-  private static final int WORKER_THREADS = 16;
+  private static final int WORKER_THREADS = 6;
   private static final String APP_ID = "simpleApp";
 
   /** Configuration parameters to specify where the node monitor is running. */
-  private static final String NIC_Name= "NIC_name";
+  private static final String NIC_Name= "nic_name";
   private static final String DEFAULT_NODE_MONITOR_HOST = "eth2";
   private static String NODE_MONITOR_PORT = "node_monitor_port";
 
@@ -71,7 +74,7 @@ public class SimpleBackend implements BackendService.Iface {
   private static final Logger LOG = Logger.getLogger(SimpleBackend.class);
   private static final ExecutorService executor =
       Executors.newFixedThreadPool(WORKER_THREADS);
-
+  private static String taskCmdName = "benchmark";
   /**
    * Keeps track of finished tasks.
    *
@@ -111,21 +114,40 @@ public class SimpleBackend implements BackendService.Iface {
     private int taskDurationMillis;
     private TFullTaskId taskId;
     private ByteBuffer message;
+    private float taskMemSize;
+    private int taskIoMillis;
     public TaskRunnable(String requestId, TFullTaskId taskId, ByteBuffer message) {
       this.taskDurationMillis = message.getInt();
       this.taskId = taskId;
       this.message = message;
+      this.taskMemSize = message.getFloat();
+      this.taskIoMillis = message.getInt();
     }
 
     @Override
     public void run() {
       long startTime = System.currentTimeMillis();
+      String cmdMessage;
       try {
-        Thread.sleep(taskDurationMillis);
-      } catch (InterruptedException e) {
-        LOG.error("Interrupted while sleeping: " + e.getMessage());
+        cmdMessage = "./"+taskCmdName+" "+ taskDurationMillis+" "+taskMemSize+" "+taskIoMillis;
+        Process p = Runtime.getRuntime().exec(cmdMessage);
+        BufferedReader bri = new BufferedReader
+                (new InputStreamReader(p.getInputStream()));
+        BufferedReader bre = new BufferedReader
+                (new InputStreamReader(p.getErrorStream()));
+        while (bri.readLine() != null);
+          bri.close();
+        while (bre.readLine() != null);
+          bre.close();
+        p.waitFor();
+      } catch (IOException e) {
+        LOG.fatal("launching process failed: " + e.getMessage());
+        return;
+      }catch (InterruptedException e){
+        LOG.fatal("interrupted error: "+e.getMessage());
+        return;
       }
-      LOG.debug("Task completed in " + (System.currentTimeMillis() - startTime) + "ms");
+      LOG.info("Task:"+taskId.requestId+" "+cmdMessage+" completed in " + (System.currentTimeMillis() - startTime) + "ms");
       finishedTasks.add(taskId);
     }
   }
@@ -145,19 +167,21 @@ public class SimpleBackend implements BackendService.Iface {
 
     try {
       //[WDM] backend runs on the same machine as the nodeMonitor it tries to register
-      client.registerBackend(APP_ID, nodeMonitorHost+":"+listenPort);
-      LOG.debug("Client successfully registered");
+      if(!client.registerBackend(APP_ID, nodeMonitorHost+":"+listenPort)) {
+        LOG.error("unsuccessful backend registration" + nodeMonitorHost + ":" + listenPort);
+        return;
+      }
     } catch (TException e) {
       LOG.debug("Error while registering backend: " + e.getMessage());
     }
-
+    LOG.debug("backend successfully registered");
     new Thread(new TasksFinishedRpcRunnable()).start();
   }
 
   @Override
   public void launchTask(ByteBuffer message, TFullTaskId taskId,
       TUserGroupInfo user) throws TException {
-    LOG.info("Submitting task " + taskId.getTaskId() + " at " + System.currentTimeMillis());
+    LOG.debug("Submitting task " + taskId.getTaskId() + " at " + System.currentTimeMillis());
 
     executor.submit(new TaskRunnable(
         taskId.requestId, taskId, message));
@@ -178,7 +202,7 @@ public class SimpleBackend implements BackendService.Iface {
     // Logger configuration: log to the console
     BasicConfigurator.configure();
     LOG.setLevel(Level.DEBUG);
-    LOG.debug("debug logging on");
+    PropertyConfigurator.configure("src/log4j.properties");
 
     Configuration conf = new PropertiesConfiguration();
 

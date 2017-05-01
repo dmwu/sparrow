@@ -22,9 +22,11 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import edu.berkeley.sparrow.daemon.util.Network;
 import joptsimple.OptionParser;
@@ -32,6 +34,7 @@ import joptsimple.OptionSet;
 
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.logging.Log;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -74,47 +77,56 @@ public class SimpleFrontend implements FrontendService.Iface {
    * Default application name.
    */
   public static final String APPLICATION_ID = "simpleApp";
-
+  private final AtomicInteger jobFinishedCount = new AtomicInteger(0);
   private static final Logger LOG = Logger.getLogger(SimpleFrontend.class);
 
   private static final TUserGroupInfo USER = new TUserGroupInfo();
-
   private SparrowFrontendClient client;
   private double traceCPUmean;
   private int traceJSmean;
+  private HashMap<Integer,Double> jobStartTime = new HashMap<Integer, Double>();
   /** A runnable which Spawns a new thread to launch a scheduling request. */
   private class JobLaunchRunnable implements Runnable {
     private int tasksPerJob;
     private int taskDurationMillis;
-
-    public JobLaunchRunnable(int tasksPerJob, int taskDurationMillis) {
+    private float taskMemSize;
+    private int taskIoMillis;
+    private int generatedJobId;
+    public JobLaunchRunnable(int jobId, int tasksPerJob,
+                             int taskDurationMillis, float taskMem, int taskIoMillis)
+    {
       this.tasksPerJob = tasksPerJob;
       this.taskDurationMillis = taskDurationMillis;
+      this.taskMemSize = taskMem;
+      this.taskIoMillis = taskIoMillis;
+      this.generatedJobId = jobId;
     }
 
     @Override
     public void run() {
       // Generate tasks in the format expected by Sparrow. First, pack task parameters.
-      ByteBuffer message = ByteBuffer.allocate(4);
+      ByteBuffer message = ByteBuffer.allocate(12);
       message.putInt(taskDurationMillis);
+      message.putFloat(taskMemSize);
+      message.putInt(taskIoMillis);
 
       List<TTaskSpec> tasks = new ArrayList<TTaskSpec>();
       for (int taskId = 0; taskId < tasksPerJob; taskId++) {
+        //task id is from 0
         TTaskSpec spec = new TTaskSpec();
         spec.setTaskId(Integer.toString(taskId));
         spec.setMessage(message.array());
         tasks.add(spec);
       }
       long start = System.currentTimeMillis();
-      try {
-        client.submitJob(APPLICATION_ID, tasks, USER);
-      } catch (TException e) {
-        LOG.error("Scheduling request failed!", e);
-      }
+      jobStartTime.put(generatedJobId,(double) start);
+      client.submitJob(APPLICATION_ID, generatedJobId, tasks, USER);
+
       long end = System.currentTimeMillis();
-      LOG.debug("Scheduling request duration " + (end - start));
+      LOG.debug("job:"+this.generatedJobId+" submission delay:"+(end-start));
     }
   }
+
 
   public void run(String[] args) {
     try {
@@ -130,9 +142,8 @@ public class SimpleFrontend implements FrontendService.Iface {
 
       // Logger configuration: log to the console
       BasicConfigurator.configure();
-      LOG.setLevel(Level.DEBUG);
 
-      PropertyConfigurator.configure("src/log4j.properties");
+      PropertyConfigurator.configure("src/frontend_log4j.properties");
       Configuration conf = new PropertiesConfiguration();
 
       if (options.has("c")) {
@@ -144,7 +155,7 @@ public class SimpleFrontend implements FrontendService.Iface {
       //need to randomly pick a scheduler if it is not on localhost
       String schedulerIp = Network.getIPAddress(conf);
       client = new SparrowFrontendClient();
-      client.initialize(new InetSocketAddress(schedulerIp, schedulerPort), APPLICATION_ID, this);
+      client.initialize(new InetSocketAddress(schedulerIp, schedulerPort), APPLICATION_ID, this,conf);
       launchTasks(conf);
     }
     catch (Exception e) {
@@ -160,9 +171,9 @@ public class SimpleFrontend implements FrontendService.Iface {
     double avgInterArrivalDelay = traceCPUmean*traceJSmean/load;
     long nextLaunchTime =0, lastLaunchTime =System.currentTimeMillis();
     List<JobSpec> jobTrace = parseJobsFromFile(traceFile);
-
+    int generatedJobId = 0;
     for (JobSpec job : jobTrace) {
-      JobLaunchRunnable runnable = new JobLaunchRunnable(job.numTasks, job.durationMilli);
+      JobLaunchRunnable runnable = new JobLaunchRunnable(generatedJobId++, job.numTasks, job.taskDurationMilli,job.taskMemRatio, job.taskIoMilli);
       runnable.run();
       nextLaunchTime = lastLaunchTime + (long) avgInterArrivalDelay;
       lastLaunchTime = nextLaunchTime;
@@ -185,18 +196,27 @@ public class SimpleFrontend implements FrontendService.Iface {
   @Override
   public void frontendMessage(TFullTaskId taskId, int status, ByteBuffer message)
       throws TException {
-    // We don't use messages here, so just log it.
-    LOG.debug("Got unexpected message: " + Serialization.getByteBufferContents(message));
+    if(status != 0){
+      LOG.error("job failed:"+taskId.requestId);
+      return;
+    }
+    String[]items = taskId.requestId.split("_");
+    int jobId = Integer.parseInt(items[1]);
+    double delay = System.currentTimeMillis()-jobStartTime.get(jobId);
+    LOG.info("[job complete]:"+jobId+" delay:"+ delay);
+    LOG.info("jobs finished so far:"+jobFinishedCount.incrementAndGet());
+
   }
+
   class JobSpec{
-    int durationMilli;
-    int ioMilli;
-    double memRatio;
+    int taskDurationMilli;
+    int taskIoMilli;
+    float taskMemRatio;
     int numTasks;
-    JobSpec(int duration, double mem, int io, int js){
-      durationMilli = duration;
-      ioMilli = io;
-      memRatio = mem;
+    JobSpec(int duration, float mem, int io, int js){
+      taskDurationMilli = duration;
+      taskIoMilli = io;
+      taskMemRatio = mem;
       numTasks = js;
     }
   }
@@ -215,13 +235,13 @@ public class SimpleFrontend implements FrontendService.Iface {
           int jobsize = Integer.parseInt(items[4]);
           //scaling down by 1000x, original data are in seconds, now are in millis
           double cpu = Double.parseDouble(items[1]);
-          double mem = Double.parseDouble(items[2])/jobsize;
+          double taskMem = Double.parseDouble(items[2])/jobsize;
           double io = Double.parseDouble(items[3]);
           int scaledJs = Math.max(jobsize/166,1);
           int taskCPU = (int)(cpu/scaledJs);
           int taskIO = (int)(io/scaledJs);
           if(taskCPU >0 || taskCPU<=maxAllowedTaskDurationInMillis){
-            jobTrace.add(new JobSpec(taskCPU, mem, taskIO, scaledJs));
+            jobTrace.add(new JobSpec(taskCPU, (float)taskMem, taskIO, scaledJs));
             sumLoad += taskCPU*scaledJs;
             sumJs+=scaledJs;
           }

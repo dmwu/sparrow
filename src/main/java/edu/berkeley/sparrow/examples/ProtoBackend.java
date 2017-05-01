@@ -259,7 +259,7 @@ public class ProtoBackend implements BackendService.Iface {
   @Override
   public void launchTask(ByteBuffer message, TFullTaskId taskId,
       TUserGroupInfo user) throws TException {
-    LOG.info("Submitting task " + taskId.getTaskId() + " at " + System.currentTimeMillis());
+    LOG.debug("Submitting task " + taskId.getTaskId() + " at " + System.currentTimeMillis());
 
     // Note we ignore user here
     executor.submit(new TaskRunnable(

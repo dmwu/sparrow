@@ -64,12 +64,13 @@ struct TTaskSpec {
 
 struct TSchedulingRequest {
   1: string app;
-  2: list<TTaskSpec> tasks;
-  3: TUserGroupInfo user;
+  2: i32 jobId;
+  3: list<TTaskSpec> tasks;
+  4: TUserGroupInfo user;
   # A description that will be logged alongside the requestId that Sparrow assigns.
-  4: optional string description;
+  5: optional string description;
   # Hack to allow us to specify the probe ratio for certain types of requests.
-  5: optional double probeRatio;
+  6: optional double probeRatio;
 }
 
 struct TEnqueueTaskReservationsRequest {

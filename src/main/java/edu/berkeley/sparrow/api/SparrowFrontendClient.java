@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
@@ -46,7 +47,7 @@ public class SparrowFrontendClient {
   private final static Logger LOG = Logger.getLogger(SparrowFrontendClient.class);
   private final static int NUM_CLIENTS = 8; // Number of concurrent requests we support
   private final static int DEFAULT_LISTEN_PORT = 50201;
-
+  private Configuration conf;
   BlockingQueue<SchedulerService.Client> clients =
       new LinkedBlockingQueue<SchedulerService.Client>();
 
@@ -60,8 +61,9 @@ public class SparrowFrontendClient {
    * @throws IOException
    */
   public void initialize(InetSocketAddress sparrowSchedulerAddr, String app,
-      FrontendService.Iface frontendServer)
+                         FrontendService.Iface frontendServer, Configuration conf)
       throws TException, IOException {
+    this.conf = conf;
     initialize(sparrowSchedulerAddr, app, frontendServer, DEFAULT_LISTEN_PORT);
   }
 
@@ -97,19 +99,26 @@ public class SparrowFrontendClient {
           60000);
       clients.add(client);
     }
-    clients.peek().registerFrontend(app, Network.getIPAddress(new PropertiesConfiguration())
+    clients.peek().registerFrontend(app, Network.getIPAddress(this.conf)
         + ":" + listenPort);
   }
+  //[WDM] April-30-2017
+  public boolean submitJob(String app, int jobId, List<edu.berkeley.sparrow.thrift.TTaskSpec> tasks,
+                           TUserGroupInfo user) {
+    TSchedulingRequest request = new TSchedulingRequest(app, jobId, tasks, user);
+    return submitRequest(request);
+  }
 
+  //[WDM] 04-30-2017 changed the for the following 3 APIs
   public boolean submitJob(String app,
       List<edu.berkeley.sparrow.thrift.TTaskSpec> tasks, TUserGroupInfo user)
           throws TException {
-    return submitRequest(new TSchedulingRequest(app, tasks, user));
+    return submitRequest(new TSchedulingRequest(app, 0, tasks, user));
   }
 
   public boolean submitJob(String app, List<edu.berkeley.sparrow.thrift.TTaskSpec> tasks,
   	  TUserGroupInfo user, String description) {
-  	TSchedulingRequest request = new TSchedulingRequest(app, tasks, user);
+  	TSchedulingRequest request = new TSchedulingRequest(app, 0, tasks, user);
   	request.setDescription(description);
   	return submitRequest(request);
   }
@@ -118,7 +127,7 @@ public class SparrowFrontendClient {
       List<edu.berkeley.sparrow.thrift.TTaskSpec> tasks, TUserGroupInfo user,
       double probeRatio)
           throws TException {
-    TSchedulingRequest request = new TSchedulingRequest(app, tasks, user);
+    TSchedulingRequest request = new TSchedulingRequest(app, 0,tasks, user);
     request.setProbeRatio(probeRatio);
     return submitRequest(request);
   }
@@ -133,8 +142,6 @@ public class SparrowFrontendClient {
     } catch (TException e) {
       LOG.error("Thrift exception when submitting job: " + e.getMessage());
       return false;
-    } catch (IncompleteRequestException e) {
-      LOG.error(e);
     }
     return true;
   }

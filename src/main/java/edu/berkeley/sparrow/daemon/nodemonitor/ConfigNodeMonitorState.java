@@ -19,12 +19,13 @@ package edu.berkeley.sparrow.daemon.nodemonitor;
 import java.net.InetSocketAddress;
 import java.util.Set;
 
+import edu.berkeley.sparrow.daemon.util.Network;
 import org.apache.commons.configuration.Configuration;
 import org.apache.log4j.Logger;
 
 import edu.berkeley.sparrow.daemon.SparrowConf;
 import edu.berkeley.sparrow.daemon.util.ConfigUtil;
-
+import edu.berkeley.sparrow.daemon.nodemonitor.NodeMonitorThrift;
 /***
  * A {@link NodeMonitorState} implementation based on a static config file.
  */
@@ -37,6 +38,8 @@ public class ConfigNodeMonitorState implements NodeMonitorState {
   @Override
   public void initialize(Configuration conf) {
     nodeMonitors = ConfigUtil.parseBackends(conf);
+    nodeMonitors.add(new InetSocketAddress(Network.getIPAddress(conf),
+            NodeMonitorThrift.DEFAULT_INTERNAL_THRIFT_PORT));
     staticAppId = conf.getString(SparrowConf.STATIC_APP_NAME);
   }
 

@@ -16,6 +16,8 @@
 
 package edu.berkeley.sparrow.daemon.util;
 
+import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.HashSet;
 import java.util.Set;
@@ -27,6 +29,9 @@ import com.google.common.base.Optional;
 
 import edu.berkeley.sparrow.daemon.SparrowConf;
 import edu.berkeley.sparrow.thrift.TResourceVector;
+import edu.berkeley.sparrow.daemon.nodemonitor.NodeMonitorThrift;
+
+import static edu.berkeley.sparrow.daemon.nodemonitor.NodeMonitorThrift.DEFAULT_INTERNAL_THRIFT_PORT;
 
 /**
  * Utilities to aid the configuration file-based scheduler and node monitor.
@@ -49,14 +54,20 @@ public class ConfigUtil {
     Set<InetSocketAddress> backends = new HashSet<InetSocketAddress>();
 
     for (String node: conf.getStringArray(SparrowConf.STATIC_NODE_MONITORS)) {
-      //System.out.println("[WDM] node: "+node);
+      System.out.println("[WDM] node: "+node);
       Optional<InetSocketAddress> addr = Serialization.strToSocket(node);
       if (!addr.isPresent()) {
         LOG.warn("Bad backend address: " + node);
         continue;
       }
-      //System.out.println("[WDM] after conversion: "+addr.get());
-      backends.add(addr.get());
+      InetAddress ia = addr.get().getAddress();
+      if(ia.isAnyLocalAddress()||ia.isLoopbackAddress()){
+        String localIp = Network.getIPAddress(conf);
+        backends.add(new InetSocketAddress(localIp, addr.get().getPort()));
+      }
+      else if(addr.get().getAddress() instanceof Inet4Address) {
+        backends.add(addr.get());
+      }
     }
     return backends;
   }

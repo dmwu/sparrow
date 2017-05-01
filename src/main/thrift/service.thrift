@@ -35,7 +35,7 @@ service SchedulerService {
                            3: i32 status, 4: binary message);
 }
 
-service GetTaskService {
+service GetTaskAndNotificationService {
   # Called by a node monitor when it has available responses to run a task. Always called in
   # response to an enqueueTask() request from this scheduler, requestId specifies the ID given
   # in that enqueueTask() request. Currently, we only support returning 0 or 1 task
@@ -44,6 +44,7 @@ service GetTaskService {
   # TODO: Add a numTasks parameter to signal how many slots are free, and support
   #       returning more than 1 tasks.
   list<types.TTaskLaunchSpec> getTask(1: string requestId, 2: types.THostPort nodeMonitorAddress);
+  void taskFinish(1: list<types.TFullTaskId> tasks);
 }
 
 

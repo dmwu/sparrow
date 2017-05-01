@@ -32,7 +32,7 @@ import org.apache.thrift.transport.TNonblockingSocket;
 import org.apache.thrift.transport.TNonblockingTransport;
 
 import edu.berkeley.sparrow.thrift.FrontendService;
-import edu.berkeley.sparrow.thrift.GetTaskService;
+import edu.berkeley.sparrow.thrift.GetTaskAndNotificationService;
 import edu.berkeley.sparrow.thrift.InternalService;
 import edu.berkeley.sparrow.thrift.NodeMonitorService;
 import edu.berkeley.sparrow.thrift.PongService;
@@ -109,11 +109,11 @@ public class ThriftClientPool<T extends TAsyncClient> {
   }
 
   public static class GetTaskServiceMakerFactory
-  implements MakerFactory<GetTaskService.AsyncClient> {
+  implements MakerFactory<GetTaskAndNotificationService.AsyncClient> {
     @Override
-    public GetTaskService.AsyncClient create(TNonblockingTransport tr,
+    public GetTaskAndNotificationService.AsyncClient create(TNonblockingTransport tr,
         TAsyncClientManager mgr, TProtocolFactory factory) {
-      return new GetTaskService.AsyncClient(factory, mgr, tr);
+      return new GetTaskAndNotificationService.AsyncClient(factory, mgr, tr);
     }
   }
 

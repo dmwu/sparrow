@@ -19,6 +19,7 @@ package edu.berkeley.sparrow.daemon.util;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 
+import edu.berkeley.sparrow.thrift.*;
 import org.apache.log4j.Logger;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
@@ -27,12 +28,7 @@ import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
-import edu.berkeley.sparrow.thrift.BackendService;
-import edu.berkeley.sparrow.thrift.FrontendService;
-import edu.berkeley.sparrow.thrift.GetTaskService;
-import edu.berkeley.sparrow.thrift.NodeMonitorService;
-import edu.berkeley.sparrow.thrift.SchedulerService;
-import edu.berkeley.sparrow.thrift.StateStoreService;
+import edu.berkeley.sparrow.thrift.GetTaskAndNotificationService;
 
 /**
  * Helper functions for creating Thrift clients for various Sparrow interfaces.
@@ -84,17 +80,17 @@ public class TClients {
     return client;
   }
 
-  public static GetTaskService.Client createBlockingGetTaskClient(
+  public static GetTaskAndNotificationService.Client createBlockingGetTaskClient(
       InetSocketAddress socket) throws IOException {
     return createBlockingGetTaskClient(socket.getAddress().getHostAddress(), socket.getPort());
   }
 
-  public static GetTaskService.Client createBlockingGetTaskClient(
+  public static GetTaskAndNotificationService.Client createBlockingGetTaskClient(
       String host, int port) throws IOException {
     return createBlockingGetTaskClient(host, port, 0);
   }
 
-  public static GetTaskService.Client createBlockingGetTaskClient(
+  public static GetTaskAndNotificationService.Client createBlockingGetTaskClient(
       String host, int port, int timeout) throws IOException {
     TTransport tr = new TFramedTransport(new TSocket(host, port, timeout));
     try {
@@ -104,7 +100,7 @@ public class TClients {
       throw new IOException(e);
     }
     TProtocol proto = new TBinaryProtocol(tr);
-    GetTaskService.Client client = new GetTaskService.Client(proto);
+    GetTaskAndNotificationService.Client client = new GetTaskAndNotificationService.Client(proto);
     return client;
   }
 

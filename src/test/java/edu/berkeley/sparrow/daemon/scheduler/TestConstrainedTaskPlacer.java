@@ -115,7 +115,7 @@ public class TestConstrainedTaskPlacer {
       tasks.add(new TTaskSpec(id, placementPreference, message));
     }
 
-    TSchedulingRequest schedulingRequest = new TSchedulingRequest(APP_ID, tasks, user);
+    TSchedulingRequest schedulingRequest = new TSchedulingRequest(APP_ID, 0,tasks, user);
 
     // Create list of available backend nodes, with some additional nodes in addition to the
     // preferred ones.
@@ -149,7 +149,7 @@ public class TestConstrainedTaskPlacer {
     // Create the scheduling request.
     List<TTaskSpec> tasks = new ArrayList<TTaskSpec>();
     tasks.add(task);
-    TSchedulingRequest schedulingRequest = new TSchedulingRequest(APP_ID, tasks, user);
+    TSchedulingRequest schedulingRequest = new TSchedulingRequest(APP_ID, 0,tasks, user);
 
     // Create a set of backends, including all of the preferred nodes and some extra nodes too.
     allBackends.add(new InetSocketAddress("3.4.5.6", 174));
@@ -291,7 +291,7 @@ public class TestConstrainedTaskPlacer {
     tasks.add(new TTaskSpec(unconstrainedTaskId, null, message));
 
     TUserGroupInfo user = new TUserGroupInfo(USER, GROUP, PRIORITY);
-    TSchedulingRequest schedulingRequest = new TSchedulingRequest(APP_ID, tasks, user);
+    TSchedulingRequest schedulingRequest = new TSchedulingRequest(APP_ID, 0,tasks, user);
 
     // Create list of available backend nodes, with some additional nodes in additional to the
     // preferred ones.

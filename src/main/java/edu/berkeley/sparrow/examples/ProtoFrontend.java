@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import edu.berkeley.sparrow.daemon.util.Network;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 
@@ -251,8 +252,8 @@ public class ProtoFrontend implements FrontendService.Iface {
       SparrowFrontendClient client = new SparrowFrontendClient();
       int schedulerPort = conf.getInt("scheduler_port",
           SchedulerThrift.DEFAULT_SCHEDULER_THRIFT_PORT);
-      client.initialize(new InetSocketAddress("localhost", schedulerPort), APPLICATION_ID, this);
-
+      String schedulerIp = Network.getIPAddress(conf);
+      client.initialize(new InetSocketAddress(schedulerIp, schedulerPort), APPLICATION_ID, this,conf);
       if (warmupDurationS > 0) {
         LOG.debug("Warming up for " + warmupDurationS + " seconds at arrival rate of " +
                   warmupLambda + " jobs per second");

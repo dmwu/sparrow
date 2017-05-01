@@ -21,24 +21,20 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+import edu.berkeley.sparrow.thrift.*;
 import org.apache.commons.configuration.Configuration;
 import org.apache.thrift.TException;
 
 import edu.berkeley.sparrow.daemon.SparrowConf;
 import edu.berkeley.sparrow.daemon.util.Network;
 import edu.berkeley.sparrow.daemon.util.TServers;
-import edu.berkeley.sparrow.thrift.SchedulerService;
-import edu.berkeley.sparrow.thrift.GetTaskService;
-import edu.berkeley.sparrow.thrift.TFullTaskId;
-import edu.berkeley.sparrow.thrift.THostPort;
-import edu.berkeley.sparrow.thrift.TSchedulingRequest;
-import edu.berkeley.sparrow.thrift.TTaskLaunchSpec;
+import edu.berkeley.sparrow.thrift.GetTaskAndNotificationService;
 
 /**
  * This class extends the thrift sparrow scheduler interface. It wraps the
  * {@link Scheduler} class and delegates most calls to that class.
  */
-public class SchedulerThrift implements SchedulerService.Iface, GetTaskService.Iface {
+public class SchedulerThrift implements SchedulerService.Iface, GetTaskAndNotificationService.Iface {
   // Defaults if not specified by configuration
   public final static int DEFAULT_SCHEDULER_THRIFT_PORT = 20503;
   private final static int DEFAULT_SCHEDULER_THRIFT_THREADS = 8;
@@ -65,8 +61,8 @@ public class SchedulerThrift implements SchedulerService.Iface, GetTaskService.I
     TServers.launchThreadedThriftServer(port, threads, processor);
     int getTaskPort = conf.getInt(SparrowConf.GET_TASK_PORT,
         DEFAULT_GET_TASK_PORT);
-    GetTaskService.Processor<GetTaskService.Iface> getTaskprocessor =
-        new GetTaskService.Processor<GetTaskService.Iface>(this);
+    GetTaskAndNotificationService.Processor<GetTaskAndNotificationService.Iface> getTaskprocessor =
+        new GetTaskAndNotificationService.Processor<GetTaskAndNotificationService.Iface>(this);
     TServers.launchSingleThreadThriftServer(getTaskPort, getTaskprocessor);
   }
 
@@ -91,5 +87,9 @@ public class SchedulerThrift implements SchedulerService.Iface, GetTaskService.I
   public List<TTaskLaunchSpec> getTask(String requestId, THostPort nodeMonitorAddress)
       throws TException {
     return scheduler.getTask(requestId, nodeMonitorAddress);
+  }
+  @Override
+  public void taskFinish(List<TFullTaskId> tasks) throws TException{
+    scheduler.taskFinish(tasks);
   }
 }

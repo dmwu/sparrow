@@ -92,7 +92,7 @@ public class TestUnconstrainedTaskPlacer {
       tasks.add(new TTaskSpec(id, placementPreference, message));
     }
 
-    TSchedulingRequest schedulingRequest = new TSchedulingRequest(APP_ID, tasks, user);
+    TSchedulingRequest schedulingRequest = new TSchedulingRequest(APP_ID, 0,tasks, user);
     
     final int NUM_ITERATIONS = 100;
     for (int i = 0; i < NUM_ITERATIONS; ++i) {
@@ -128,7 +128,7 @@ public class TestUnconstrainedTaskPlacer {
    */
   @Test
   public void sanityCheckEnqueueTaskReservations() {
-    TSchedulingRequest schedulingRequest = new TSchedulingRequest(APP_ID, tasks, user);
+    TSchedulingRequest schedulingRequest = new TSchedulingRequest(APP_ID, 0,tasks, user);
 
     final int NUM_ITERATIONS = 100;
     for (int i = 0; i < NUM_ITERATIONS; ++i) {
@@ -161,7 +161,7 @@ public class TestUnconstrainedTaskPlacer {
    */
   @Test
   public void testAssignTask() {
-    TSchedulingRequest schedulingRequest = new TSchedulingRequest(APP_ID, tasks, user);
+    TSchedulingRequest schedulingRequest = new TSchedulingRequest(APP_ID,0, tasks, user);
 
     final int numIterations = 100;
     final int expectedReservations = 3;
@@ -204,7 +204,7 @@ public class TestUnconstrainedTaskPlacer {
    */
   @Test
   public void testAllTasksPlaced() {
-    TSchedulingRequest schedulingRequest = new TSchedulingRequest(APP_ID, tasks, user);
+    TSchedulingRequest schedulingRequest = new TSchedulingRequest(APP_ID,0, tasks, user);
 
     final int numIterations = 100;
     final int expectedReservations = 3;
@@ -245,7 +245,7 @@ public class TestUnconstrainedTaskPlacer {
 
   @Test
   public void testCancellation() {
-    TSchedulingRequest schedulingRequest = new TSchedulingRequest(APP_ID, tasks, user);
+    TSchedulingRequest schedulingRequest = new TSchedulingRequest(APP_ID, 0,tasks, user);
 
     final int numIterations = 100;
     for (int i = 0; i < numIterations; ++i) {

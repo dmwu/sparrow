@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -54,6 +55,7 @@ import edu.berkeley.sparrow.thrift.TPlacementPreference;
 import edu.berkeley.sparrow.thrift.TSchedulingRequest;
 import edu.berkeley.sparrow.thrift.TTaskLaunchSpec;
 import edu.berkeley.sparrow.thrift.TTaskSpec;
+import org.apache.thrift.transport.TSaslClientTransport;
 
 /**
  * This class implements the Sparrow scheduler functionality.
@@ -73,7 +75,7 @@ public class Scheduler {
   /** Socket addresses for each frontend. */
   HashMap<String, InetSocketAddress> frontendSockets =
       new HashMap<String, InetSocketAddress>();
-
+  ConcurrentHashMap<String, JobTracker> jobTrackers = new ConcurrentHashMap<String, JobTracker>();
   /**
    * Service that handles cancelling outstanding reservations for jobs that have already been
    * scheduled.  Only instantiated if {@code SparrowConf.CANCELLATION} is set to true.
@@ -127,7 +129,6 @@ public class Scheduler {
     }
 
     state.initialize(conf);
-
     defaultProbeRatioUnconstrained = conf.getDouble(SparrowConf.SAMPLE_RATIO,
         SparrowConf.DEFAULT_SAMPLE_RATIO);
     defaultProbeRatioConstrained = conf.getDouble(SparrowConf.SAMPLE_RATIO_CONSTRAINED,
@@ -300,7 +301,7 @@ public class Scheduler {
 
     long start = System.currentTimeMillis();
 
-    String requestId = getRequestId();
+    String requestId = getRequestId(request);
 
     String user = "";
     if (request.getUser() != null && request.getUser().getUser() != null) {
@@ -314,6 +315,11 @@ public class Scheduler {
     String app = request.getApp();
     List<TTaskSpec> tasks = request.getTasks();
     Set<InetSocketAddress> backends = state.getBackends(app);
+    if(backends.size()==0){
+      LOG.error("[WDM] no backends!");
+      return;
+    }
+
     LOG.debug("NumBackends: " + backends.size());
     boolean constrained = false;
     for (TTaskSpec task : tasks) {
@@ -347,6 +353,11 @@ public class Scheduler {
       }
     }
     requestTaskPlacers.put(requestId, taskPlacer);
+
+    JobTracker jobTracker = new JobTracker(app, request.jobId,request.getTasksSize());
+    if(!jobTrackers.containsKey(request.jobId)){
+      jobTrackers.put(requestId,jobTracker);
+    }
 
     Map<InetSocketAddress, TEnqueueTaskReservationsRequest> enqueueTaskReservationsRequests;
     enqueueTaskReservationsRequests = taskPlacer.getEnqueueTaskReservationsRequests(
@@ -424,11 +435,11 @@ public class Scheduler {
    * TODO: Include the port number, so this works when there are multiple schedulers
    * running on a single machine.
    */
-  private String getRequestId() {
+  private String getRequestId(TSchedulingRequest request) {
     /* The request id is a string that includes the IP address of this scheduler followed
      * by the counter.  We use a counter rather than a hash of the request because there
      * may be multiple requests to run an identical job. */
-    return String.format("%s_%d", Network.getIPAddress(conf), counter.getAndIncrement());
+    return String.format("Job_%d_requestId_%d", request.jobId, counter.getAndIncrement());
   }
 
   private class sendFrontendMessageCallback implements
@@ -449,6 +460,24 @@ public class Scheduler {
       // Do not return error client to pool
       LOG.error("Error sending frontend message callback: " + exception);
     }
+  }
+
+  public void taskFinish(List<TFullTaskId> tasks){
+      TFullTaskId t = tasks.get(0);
+      LOG.debug("[task complete]:"+t.requestId+"_"+t.taskId);
+      String requestId = t.requestId;
+      if(!jobTrackers.containsKey(requestId)){
+        LOG.error("missing job on the scheduler");
+        return;
+      }
+      JobTracker jt = jobTrackers.get(requestId);
+      jt.oneTaskFinish();
+      if(jt.allTasksFinished()){
+        LOG.info("[job complete] "+requestId);
+        //let's assume status 0 means job completion
+        sendFrontendMessage(t.appId, t, 0,null);
+        jobTrackers.remove(requestId);
+      }
   }
 
   public void sendFrontendMessage(String app, TFullTaskId taskId,

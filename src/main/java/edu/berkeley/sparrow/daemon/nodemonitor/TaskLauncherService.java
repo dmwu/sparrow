@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import edu.berkeley.sparrow.thrift.*;
 import org.apache.commons.configuration.Configuration;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
@@ -36,11 +37,7 @@ import edu.berkeley.sparrow.daemon.util.Logging;
 import edu.berkeley.sparrow.daemon.util.Network;
 import edu.berkeley.sparrow.daemon.util.Resources;
 import edu.berkeley.sparrow.daemon.util.TClients;
-import edu.berkeley.sparrow.thrift.BackendService;
-import edu.berkeley.sparrow.thrift.GetTaskService;
-import edu.berkeley.sparrow.thrift.TFullTaskId;
-import edu.berkeley.sparrow.thrift.THostPort;
-import edu.berkeley.sparrow.thrift.TTaskLaunchSpec;
+import edu.berkeley.sparrow.thrift.GetTaskAndNotificationService;
 
 /**
  * TaskLauncher service consumes TaskReservations produced by {@link TaskScheduler.getNextTask}.
@@ -67,7 +64,7 @@ public class TaskLauncherService {
   private class TaskLaunchRunnable implements Runnable {
 
     /** Client to use to communicate with each scheduler (indexed by scheduler hostname). */
-    private HashMap<String, GetTaskService.Client> schedulerClients = Maps.newHashMap();
+    private HashMap<String, GetTaskAndNotificationService.Client> schedulerClients = Maps.newHashMap();
 
     /** Client to use to communicate with each application backend (indexed by backend address). */
     private HashMap<InetSocketAddress, BackendService.Client> backendClients = Maps.newHashMap();
@@ -108,10 +105,10 @@ public class TaskLauncherService {
 
     }
 
+
     /** Uses a getTask() RPC to get the task specification from the appropriate scheduler. */
     private List<TTaskLaunchSpec> executeGetTaskRpc(TaskSpec task) {
       String schedulerAddress = task.schedulerAddress.getAddress().getHostAddress();
-      System.out.println("[WDM] schedulerAddress: "+schedulerAddress);
       if (!schedulerClients.containsKey(schedulerAddress)) {
         try {
           schedulerClients.put(schedulerAddress,
@@ -124,7 +121,7 @@ public class TaskLauncherService {
           return emptyTaskLaunchSpecs;
         }
       }
-      GetTaskService.Client getTaskClient = schedulerClients.get(schedulerAddress);
+      GetTaskAndNotificationService.Client getTaskClient = schedulerClients.get(schedulerAddress);
 
       long startTimeMillis = System.currentTimeMillis();
       long startGCCount = Logging.getGCCount();
@@ -143,10 +140,11 @@ public class TaskLauncherService {
 
       long rpcTime = System.currentTimeMillis() - startTimeMillis;
       long numGarbageCollections = Logging.getGCCount() - startGCCount;
-      LOG.debug("GetTask() RPC for request " + task.requestId + " completed in " +  rpcTime +
+      LOG.info("GetTask done for " + task.requestId + " completed in " +  rpcTime +
                 "ms (" + numGarbageCollections + "GCs occured during RPC)");
       return taskLaunchSpecs;
     }
+
 
     /** Executes an RPC to launch a task on an application backend. */
     private void executeLaunchTaskRpc(TaskSpec task) {
@@ -170,6 +168,8 @@ public class TaskLauncherService {
       }
     }
   }
+
+
 
   //WDM-11-02: scheduler here means task scheduler, "nodeMonitorPort" is "nodeMonitorInternalPort"
   public void initialize(Configuration conf, TaskScheduler scheduler,

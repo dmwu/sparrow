@@ -24,6 +24,8 @@ import org.apache.commons.configuration.Configuration;
 import edu.berkeley.sparrow.daemon.SparrowConf;
 import edu.berkeley.sparrow.thrift.THostPort;
 
+import static edu.berkeley.sparrow.daemon.SparrowDaemon.LOG;
+
 public class Network {
   
   public static THostPort socketAddressToThrift(InetSocketAddress address) {
@@ -54,17 +56,17 @@ public class Network {
 
   public static String getIPAddressByNICName(String nicName) {
     try {
-      NetworkInterface n = NetworkInterface.getByName(nicName);
-      Enumeration ee = n.getInetAddresses();
-      if(!ee.hasMoreElements()){
-        return "IP UNKNOWN";
-      }
-      InetAddress i = (InetAddress) ee.nextElement();
-        return i.getHostAddress();
+       NetworkInterface n = NetworkInterface.getByName(nicName);
+       Enumeration ee = n.getInetAddresses();
+       while(ee.hasMoreElements()) {
+         InetAddress i = (InetAddress) ee.nextElement();
+         if(i instanceof Inet4Address)
+            return i.getHostAddress();
+       }
       }
       catch (SocketException e) {
         return "IP UNKONWN";
       }
-
+      return "IP UNKNOWN";
   }
 }
