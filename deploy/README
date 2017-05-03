@@ -23,16 +23,16 @@ pauses using other gargabge collectors become significant when running
 sub-second tasks). Change the class path to reflect the location where you
 built Sparrow, and replace "sparrow.conf" with the location of the
 congiguration file you wrote above.
-$ java -XX:+UseConcMarkSweepGC -cp target/sparrow-1.0-SNAPSHOT.jar edu.berkeley.sparrow.daemon.SparrowDaemon -c daemon.conf -t [scheduler/nodemonitor]
+$ java -Dlogfile.name=xxx.log -XX:+UseConcMarkSweepGC -cp target/sparrow-1.0-SNAPSHOT.jar edu.berkeley.sparrow.daemon.SparrowDaemon -c daemon.conf -t [scheduler/nodemonitor]
 5) Start your application executor on all backends. To use the prototype
 backend, which can run either CPU-intensive or memory-intensive tasks for
 some period of time:
-$ java -cp target/sparrow-1.0-SNAPSHOT.jar edu.berkeley.sparrow.examples.ProtoBackend
+$ java -cp target/sparrow-1.0-SNAPSHOT.jar edu.berkeley.sparrow.examples.SimpleBackend -c be.conf
 6) Start a frontend that submits scheduling requests to Sparrow. The current
 implementation assumes that there is a scheduler running on the same
 machine where the frontend is started, so frontends should only be started
 on machines where Sparrow is running.
-$ java -cp target/sparrow-1.0-SNAPSHOT.jar edu.berkeley.sparrow.examples.ProtoFrontend
+$ java -cp target/sparrow-1.0-SNAPSHOT.jar edu.berkeley.sparrow.examples.SimpleFrontend -c fe.conf
 
 The frontend accepts a configuration file (by adding "-c conf_file" when
 starting the frontend) where you can specify various configuration options to
