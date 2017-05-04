@@ -129,7 +129,6 @@ public class UnconstrainedTaskPlacer implements TaskPlacer {
 	if (numOutstandingReservations == null) {
 		LOG.error("Node monitor " + nodeMonitorAddress +
 		    " not in list of outstanding reservations");
-        System.out.println("[wdm]"+outstandingReservations.keySet().toArray().toString());
 		return Lists.newArrayList();
 	}
     if (numOutstandingReservations == 1) {
